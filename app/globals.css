@@ -26,6 +26,11 @@ body {
     rgb(var(--background-start-rgb));
 }
 
+.menu-item {
+  padding-left: 20px;
+  font-family: cursive;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
