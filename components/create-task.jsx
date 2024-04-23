@@ -12,6 +12,7 @@ import {
   MenuItem,
   Stack,
   IconButton,
+  LinearProgress
 } from '@mui/material';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import CloseIcon from '@mui/icons-material/Close';
@@ -30,11 +31,10 @@ const style = {
 };
 
 
-export default function CreateTaskModal() {
-  const [open, setOpen] = useState(false);
-  const handleOpen = () => setOpen(true);
+export default function CreateTaskModal(props) {
+  const [open, setOpen] = useState(props.open);
   const handleClose = () => {
-    setOpen(false);
+    props.setOpen(false);
     resetForm();
   };
 
@@ -46,6 +46,7 @@ export default function CreateTaskModal() {
   const [dueDate, setDueDate] = useState(new Date());
   const [assignedTo, setAssignedTo] = useState('');
   const [createdBy, setCreatedBy] = useState('');
+  const [loading, setLoading] = useState(false)
 
   // Error state variables
   const [titleError, setTitleError] = useState(false);
@@ -65,6 +66,7 @@ export default function CreateTaskModal() {
   // Handle form submission
   const handleSubmit = (event) => {
     event.preventDefault();
+    setLoading(true)
   
     // Trim input values during form submission
     const trimmedTitle = title.trim();
@@ -84,15 +86,6 @@ export default function CreateTaskModal() {
 
       !(titleError || descriptionError ||projectError ||assignedToError ||createdByError)
     ) {
-      // Form submission logic
-      console.log('Title:', trimmedTitle);
-      console.log('Description:', trimmedDescription);
-      console.log('Project:', trimmedProject);
-      console.log('Category:', category);
-      console.log('Priority:', priority);
-      console.log('Due Date:', dueDate);
-      console.log('Assigned To:', trimmedAssignedTo);
-      console.log('Created By:', trimmedCreatedBy);
       const curday = new Date();
       const yyyy = curday.getFullYear();
       let mm = curday.getMonth() + 1; // Months start at 0!
@@ -100,18 +93,37 @@ export default function CreateTaskModal() {
 
       if (dd < 10) dd = '0' + dd;
       if (mm < 10) mm = '0' + mm;
-
       const formattedToday = dd + '/' + mm + '/' + yyyy;
-      console.log("Created On: ", formattedToday);
-      // Reset error states after successful submission
-      setTitleError(false);
-      setDescriptionError(false);
-      setProjectError(false);
-      setAssignedToError(false);
-      setCreatedByError(false);
-  
-      // Close the modal after form submission (optional)
-      handleClose();
+      const tasksInputs = {
+        title: trimmedTitle,
+        description: trimmedDescription,
+        project: trimmedProject,
+        category: category,
+        priority: priority,
+        dueDate: dueDate,
+        assignedTo: trimmedAssignedTo,
+        createdBy: trimmedCreatedBy,
+        createdOn: formattedToday
+      }
+
+      fetch('/api/createTask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tasksInputs),
+      })
+        .then(response => {
+          props.showSuccessAlert("Task created successfully")
+          setLoading(false)
+          handleClose();
+        })
+        .catch(error => {
+          console.error('Error:', error)
+          setLoading(false)
+          handleClose();
+        });
+      
     }
   };
   const resetForm = () => {
@@ -135,29 +147,7 @@ export default function CreateTaskModal() {
 
   return (
     <div>
-      <Button
-        type="button"
-        variant="contained"
-        sx={[{'&:hover': {backgroundColor: '#dd6670', color: '#eeEDD7'}}]}
-        onClick={handleOpen}
-      >
-        Create Task
-        <svg
-          className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
-          aria-hidden="true"
-          xmlns="http://www.w3.org/4000/svg"
-          fill="none"
-          viewBox="0 0 14 10"
-        >
-          <path
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M1 5h12m0 0L9 1m4 4L9 9"
-          />
-        </svg>
-      </Button>
+      
       <Modal
         open={open}
         onClose={handleClose}
@@ -365,9 +355,15 @@ export default function CreateTaskModal() {
                 color="primary"
                 type="submit"
                 sx={{ mt: 2, fontWeight: 'bold', fontSize: '16px' }}
+                disabled={loading}
               >
                 Submit
               </Button>
+              { loading && 
+                <Box sx={{ width: '100%', marginTop: '20px'}}>
+                  <LinearProgress />
+                </Box>
+              }
             </form>
           </Typography>
         </Box>
